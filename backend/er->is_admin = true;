@@ -1,0 +1,17 @@
+[90m= [39m[34;4mApp\Models\User[39;24m {#8195
+    [34mid[39m: [32m"[39m[32m019fd1be-764d-73f5-9da0-f1d0cfddb615[39m[32m"[39m,
+    [34mname[39m: [32m"[39m[32mAshenafi Deresa[39m[32m"[39m,
+    [34memail[39m: [32m"[39m[32mashenafi.deresa.cse@gmail.com[39m[32m"[39m,
+    [34memail_verified_at[39m: [36mnull[39m,
+    #[33mpassword[39m: [36mnull[39m,
+    [34mprovider[39m: [32m"[39m[32mgoogle[39m[32m"[39m,
+    [34mprovider_id[39m: [32m"[39m[32m109213984838938025599[39m[32m"[39m,
+    [34mrole[39m: [32m"[39m[32mlearner[39m[32m"[39m,
+    [34mavatar_url[39m: [32m"[39m[32mhttps://lh3.googleusercontent.com/a/ACg8ocKJpyWDl0YYEDgrWpj6spvI9hBq_NpyGqY8YLWNwnWO8L48EWk=s96-c[39m[32m"[39m,
+    [34mlocale[39m: [32m"[39m[32men[39m[32m"[39m,
+    [34mnotify_badges[39m: [36mtrue[39m,
+    #[33mremember_token[39m: [36mnull[39m,
+    [34mdeleted_at[39m: [36mnull[39m,
+    [34mcreated_at[39m: [32m"[39m[32m2026-08-05 11:45:48[39m[32m"[39m,
+    [34mupdated_at[39m: [32m"[39m[32m2026-08-05 11:53:50[39m[32m"[39m,
+  }

@@ -1,0 +1,9 @@
+[90m= [39m[34;4mApp\Models\Chapter[39;24m {#8788
+    [34mtitle[39m: [32m"[39m[32mTest Chapter[39m[32m"[39m,
+    [34morder[39m: [35m1[39m,
+    [34mingestion_status[39m: [32m"[39m[32mdraft[39m[32m"[39m,
+    [34mbook_id[39m: [32m"[39m[32m019fd2c7-fa6e-728e-b78f-18444bf49c00[39m[32m"[39m,
+    [34mid[39m: [32m"[39m[32m019fd2c7-fc22-7025-9dfe-a8eaab66a3a6[39m[32m"[39m,
+    [34mupdated_at[39m: [32m"[39m[32m2026-08-05 16:35:49[39m[32m"[39m,
+    [34mcreated_at[39m: [32m"[39m[32m2026-08-05 16:35:49[39m[32m"[39m,
+  }

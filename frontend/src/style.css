@@ -1,0 +1,105 @@
+@import "tailwindcss";
+
+/* ── Tailwind v4 Theme Configuration ──────────────────────────────────── */
+/* This injects your blue brand colors into Tailwind's utility classes */
+@theme {
+  --color-brand-50: #F0F3FA;
+  --color-brand-100: #D5DEEF;
+  --color-brand-200: #B1C9EF;
+  --color-brand-300: #8AAEE0;
+  --color-brand-400: #638ECB;
+  --color-brand-500: #395886;
+}
+
+/* ── Smart Adama Design Tokens — Monochrome ────────────────────────────── */
+:root {
+  --sa-dark:  var(--color-brand-500); /* #395886 — primary text & buttons */
+  --sa-bg:    var(--color-brand-50);  /* #F0F3FA — pure background */
+  --sa-gray:  var(--color-brand-200); /* #B1C9EF — borders/skeletons */
+  --sa-taupe: var(--color-brand-300); /* #8AAEE0 — secondary text */
+  --sa-white: #FFFFFF;                /* Cards keep white backgrounds for contrast */
+  --sa-black: var(--color-brand-500); /* Deepest brand accent */
+  /* Typography — SF Pro, with system fallbacks */
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  --font-body:    -apple-system, BlinkMacSystemFont, "SF Pro Text",    "Segoe UI", Roboto, sans-serif;
+
+  /* Spacing scale (8pt) */
+  --space-1: 8px;
+  --space-2: 16px;
+  --space-3: 24px;
+  --space-4: 32px;
+  --space-5: 40px;
+  --space-6: 48px;
+
+  /* Glass effect */
+  --glass-bg:     rgba(255, 255, 255, 0.75);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-blur:   20px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 16px rgba(0,0,0,0.08), 0 2px 6px rgba(0,0,0,0.05);
+  --shadow-lg: 0 16px 48px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.06);
+
+  /* Transitions */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  color-scheme: light;
+}
+
+/* ── Reset ────────────────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--sa-bg);
+  color: var(--sa-dark);
+  min-height: 100svh;
+}
+
+#app {
+  min-height: 100svh;
+}
+
+/* ── Typography helpers ───────────────────────────────────────────────── */
+.font-display { font-family: var(--font-display); }
+
+/* ── Glass panel ─────────────────────────────────────────────────────── */
+.glass {
+  background: var(--glass-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  border: 1px solid var(--glass-border);
+}
+
+/* ── Focus ring ──────────────────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid var(--sa-dark);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--sa-bg); }
+::-webkit-scrollbar-thumb { background: var(--sa-gray); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: var(--sa-taupe); }
+
+/* ── Page transition ────────────────────────────────────────────────── */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 0.22s var(--ease-out), transform 0.22s var(--ease-out);
+}
+.page-enter-from { opacity: 0; transform: translateY(6px); }
+.page-leave-to   { opacity: 0; transform: translateY(-6px); }
+
+/* ── Reduced motion ─────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
