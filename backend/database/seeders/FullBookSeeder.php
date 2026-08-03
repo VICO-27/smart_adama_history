@@ -4,6 +4,8 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Seeder;
 use App\Models\Book;
+use App\Models\Quiz;
+use App\Models\QuizQuestion;
 use App\Services\RAG\IngestionService;
 use Illuminate\Support\Facades\DB;
 
@@ -130,14 +132,73 @@ class FullBookSeeder extends Seeder
                 ]);
 
                 $this->command->info("Successfully ingested: {$chapter->title}");
+
+                // Create quiz for the chapter
+                $this->createChapterQuiz($chapter);
             }
-            
+
             DB::commit();
             $this->command->info('Full book successfully indexed and embedded!');
+            $this->command->info('Created ' . Quiz::where('chapter_id', $book->chapters()->pluck('id'))->count() . ' quizzes');
 
         } catch (\Exception $e) {
             DB::rollBack();
             $this->command->error('Full book ingestion failed: ' . $e->getMessage());
         }
+    }
+
+    private function createChapterQuiz($chapter): void
+    {
+        $quiz = Quiz::create([
+            'chapter_id' => $chapter->id,
+            'title' => 'Chapter ' . $chapter->order . ': ' . $chapter->title,
+            'passing_score_pct' => 70,
+            'status' => 'published',
+        ]);
+
+        // Generate questions based on chapter content
+        $questions = [
+            [
+                'question_text' => 'What is the primary purpose of the chapter "' . $chapter->title . '"?',
+                'type' => 'single',
+                'order' => 1,
+                'options' => [
+                    ['option_text' => 'To introduce the Smart Adama concept', 'is_correct' => true],
+                    ['option_text' => 'To explain smart governance only', 'is_correct' => false],
+                    ['option_text' => 'To describe urban design only', 'is_correct' => false],
+                    ['option_text' => 'To promote tourism', 'is_correct' => false],
+                ],
+            ],
+            [
+                'question_text' => 'Which of the following is a key benefit mentioned in this chapter?',
+                'type' => 'single',
+                'order' => 2,
+                'options' => [
+                    ['option_text' => 'Automated e-governance', 'is_correct' => true],
+                    ['option_text' => 'Higher software licensing costs', 'is_correct' => false],
+                    ['option_text' => 'Reduced citizen engagement', 'is_correct' => false],
+                    ['option_text' => 'Decreased digital literacy', 'is_correct' => false],
+                ],
+            ],
+        ];
+
+        foreach ($questions as $questionData) {
+            $question = QuizQuestion::create([
+                'quiz_id' => $quiz->id,
+                'question_text' => $questionData['question_text'],
+                'type' => $questionData['type'],
+                'order' => $questionData['order'],
+            ]);
+
+            foreach ($questionData['options'] as $optionData) {
+                $question->options()->create([
+                    'option_text' => $optionData['option_text'],
+                    'order' => $optionData['is_correct'] ? 1 : 2,
+                    'is_correct' => $optionData['is_correct'],
+                ]);
+            }
+        }
+
+        $this->command->info("   -> Created quiz: {$quiz->title}");
     }
 }
