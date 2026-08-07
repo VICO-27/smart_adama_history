@@ -6,6 +6,7 @@ use App\Models\ChatMessage;
 use App\Models\ChatMessageSource;
 use App\Models\ChatSession;
 use App\Services\AI\Contracts\LLMGatewayInterface;
+use App\Services\MarkdownService;
 use App\Services\RAG\PromptBuilderService;
 use App\Services\RAG\RetrievalService;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +18,7 @@ class ChatOrchestrator
         private readonly RetrievalService     $retriever,
         private readonly PromptBuilderService $promptBuilder,
         private readonly LLMGatewayInterface  $llm,
+        private readonly MarkdownService      $markdown,
     ) {
     }
 
@@ -46,22 +48,26 @@ class ChatOrchestrator
         // 4. Call LLM gateway (non-streaming for standard response or use streamChat for real-time)
         $aiResponseText = $this->llm->chat($messages);
 
-        // 5. Persist user message, assistant response, and sources transactionally
-        $assistantMessage = DB::transaction(function () use ($session, $query, $aiResponseText, $chunks, $grounded) {
+        // 5. Convert markdown response to sanitized HTML
+        $aiResponseHtml = $this->markdown->toHtml($aiResponseText);
+
+        // 6. Persist user message, assistant response, and sources transactionally
+        $assistantMessage = DB::transaction(function () use ($session, $query, $aiResponseHtml, $chunks, $grounded) {
             // Save user prompt
             $session->messages()->create([
                 'role'    => 'user',
                 'content' => $query,
             ]);
 
-            // Save assistant reply
+            // Save assistant reply with HTML content for rendering
             /** @var ChatMessage $assistantMsg */
             $assistantMsg = $session->messages()->create([
                 'role'     => 'assistant',
-                'content'  => $aiResponseText,
+                'content'  => $aiResponseHtml,
                 'metadata' => [
                     'grounded'    => $grounded,
                     'chunk_count' => count($chunks),
+                    'is_markdown' => true,
                 ],
             ]);
 

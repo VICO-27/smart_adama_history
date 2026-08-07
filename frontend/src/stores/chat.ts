@@ -2,7 +2,7 @@ import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { chatApi } from '@/api/chat'
 import { useAuthStore } from './auth'
-import { useChatStream, type StreamDonePayload } from '@/composables/useChatStream'
+import { useChatStream, type ChatMessageStreamDone } from '@/composables/useChatStream'
 
 export const useChatStore = defineStore('chat', () => {
   const sessions        = ref<App.ChatSession[]>([])
@@ -66,7 +66,7 @@ export const useChatStore = defineStore('chat', () => {
     sessionId: string,
     content: string,
     onToken?: (token: string) => void,
-    onDone?:  (payload: StreamDonePayload) => void,
+    onDone?:  (payload: ChatMessageStreamDone) => void,
   ) {
     const authStore = useAuthStore()
     if (!authStore.token) throw new Error('Not authenticated')

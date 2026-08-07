@@ -20,13 +20,11 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  *  1. Persist user message
  *  2. Retrieve top-k chunks via pgvector
  *  3. Build context-grounded prompt
- *  4. Collect full LLM response + persist assistant message (synchronous, before stream)
- *  5. Stream tokens to client via SSE
- *  6. Send done event with message ID + citations
- *
- * Persisting the assistant message BEFORE opening the SSE stream guarantees
- * it exists in the DB even in test environments where the StreamedResponse
- * closure may not be invoked before assertions run.
+ *  4. Create empty assistant message in DB
+ *  5. Stream tokens directly from LLM to client via SSE (time-to-first-token optimized)
+ *  6. Update assistant message with full content after stream completes
+ *  7. Persist citations/sources
+ *  8. Send done event with message ID + citations
  */
 class ChatMessageController extends Controller
 {
@@ -83,33 +81,84 @@ class ChatMessageController extends Controller
             $grounded
         );
 
-        // 5. Collect full LLM response synchronously, then persist assistant message.
-        //    Doing this BEFORE the StreamedResponse closure ensures the DB row exists
-        //    regardless of when the test framework invokes the closure.
-        $fullContent = '';
-        $streamError = null;
-
-        try {
-            foreach ($this->llm->streamChat($messages) as $token) {
-                $fullContent .= $token;
-            }
-        } catch (\Throwable $e) {
-            Log::error('ChatMessageController: LLM stream error', [
-                'session_id' => $session->id,
-                'error'      => $e->getMessage(),
-            ]);
-            $streamError = $e->getMessage();
-        }
-
-        // Persist assistant message + sources (Req 5.5, 6.1)
+        // 5. Stream tokens directly to SSE as they arrive from the LLM.
+        //    This enables time-to-first-token optimization.
         $assistantMessage = null;
         $citations        = [];
+        $streamError      = null;
+        $responseContent  = '';
 
-        if (! $streamError) {
-            DB::transaction(function () use ($session, $fullContent, $chunks, &$assistantMessage, &$citations) {
-                $assistantMessage = $session->messages()->create([
-                    'role'    => 'assistant',
-                    'content' => $fullContent,
+        // Persist assistant message (empty initially, will be updated after)
+        DB::transaction(function () use ($session, &$assistantMessage) {
+            $assistantMessage = $session->messages()->create([
+                'role'    => 'assistant',
+                'content' => '',
+            ]);
+        });
+
+        // Stream tokens + done event to client
+        return new StreamedResponse(function () use (
+            $messages, $chunks, $session, $assistantMessage, &$responseContent, &$citations, &$streamError
+        ) {
+            try {
+                if (ob_get_level() > 0) {
+                    ob_end_clean();
+                }
+            } catch (\Throwable) {
+            }
+
+            try {
+                foreach ($this->llm->streamChat($messages) as $token) {
+                    $responseContent .= $token;
+
+                    // Stream token immediately to client
+                    echo 'event: delta' . "\n";
+                    echo 'data: ' . json_encode(['token' => $token]) . "\n\n";
+                    flush();
+                }
+            } catch (\Throwable $e) {
+                Log::error('ChatMessageController: LLM stream error', [
+                    'session_id' => $session->id,
+                    'error'      => $e->getMessage(),
+                ]);
+                $streamError = $e->getMessage();
+
+                echo 'event: error' . "\n";
+                echo 'data: ' . json_encode([
+                    'error' => [
+                        'code'    => 'AI_PROVIDER_UNAVAILABLE',
+                        'message' => 'The AI service is temporarily unavailable.',
+                    ],
+                ]) . "\n\n";
+                flush();
+                return;
+            }
+
+            // Update assistant message content and persist sources after stream completes
+            DB::transaction(function () use ($session, $responseContent, $chunks, $assistantMessage, &$citations) {
+                // Convert markdown to HTML before saving
+                try {
+                    $markdownService = app(\App\Services\MarkdownService::class);
+                    $htmlContent = $markdownService->toHtml($responseContent);
+                    
+                    // Fallback to raw content if HTML conversion fails or returns empty
+                    if (empty(trim($htmlContent))) {
+                        Log::warning('ChatMessageController: Markdown conversion returned empty', [
+                            'markdown_length' => strlen($responseContent),
+                            'session_id' => $session->id,
+                        ]);
+                        $htmlContent = nl2br(e($responseContent)); // Fallback: escape and preserve newlines
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('ChatMessageController: Markdown conversion failed', [
+                        'error' => $e->getMessage(),
+                        'session_id' => $session->id,
+                    ]);
+                    $htmlContent = nl2br(e($responseContent)); // Fallback: escape and preserve newlines
+                }
+                
+                $assistantMessage->update([
+                    'content' => $htmlContent,
                 ]);
 
                 foreach ($chunks as $chunk) {
@@ -128,38 +177,8 @@ class ChatMessageController extends Controller
                     'similarity'    => $chunk['similarity'],
                 ], $chunks);
             });
-        }
 
-        // 6. Stream tokens + done event to client
-        return new StreamedResponse(function () use (
-            $fullContent, $assistantMessage, $citations, $streamError
-        ) {
-            try {
-                if (ob_get_level() > 0) {
-                    ob_end_clean();
-                }
-            } catch (\Throwable) {
-            }
-
-            if ($streamError) {
-                echo 'event: error' . "\n";
-                echo 'data: ' . json_encode([
-                    'error' => [
-                        'code'    => 'AI_PROVIDER_UNAVAILABLE',
-                        'message' => 'The AI service is temporarily unavailable.',
-                    ],
-                ]) . "\n\n";
-                flush();
-                return;
-            }
-
-            // Replay tokens as SSE deltas
-            foreach (str_split($fullContent, 16) as $chunk) {
-                echo 'event: delta' . "\n";
-                echo 'data: ' . json_encode(['token' => $chunk]) . "\n\n";
-                flush();
-            }
-
+            // Done event with message ID and citations
             echo 'event: done' . "\n";
             echo 'data: ' . json_encode([
                 'message_id' => $assistantMessage?->id,

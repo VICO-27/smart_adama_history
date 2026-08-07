@@ -1,154 +1,249 @@
+import { ref, type Ref } from 'vue'
+
 /**
- * useChatStream
- *
- * Thin composable wrapping the native fetch + ReadableStream SSE parser.
- * Decoupled from the chat store so it can be called from any component
- * that needs direct streaming control.
- *
- * Backend SSE format (from ChatMessageController):
- *   event: delta\n
- *   data: {"token": "..."}\n\n
- *
- *   event: done\n
- *   data: {"message_id": "...", "grounded": true, "citations": [...]}\n\n
- *
- *   event: error\n
- *   data: {"error": {"code": "...", "message": "..."}}\n\n
+ * SSE Event types
  */
+type SSEEvent = 'delta' | 'done' | 'error'
 
-import { ref } from 'vue'
+/**
+ * SSE Event payloads
+ */
+interface DeltaEvent {
+  token: string
+}
 
-export interface StreamDonePayload {
+interface DoneEvent {
   message_id: string
   grounded: boolean
-  citations: App.ChatMessageSource[]
+  citations: Citation[]
 }
 
-export interface StreamErrorPayload {
-  code: string
-  message: string
+interface ErrorEvent {
+  error: {
+    code: string
+    message: string
+  }
 }
 
+interface Citation {
+  chunk_id: string
+  chapter_title: string
+  section_title: string
+  excerpt: string
+  similarity: number
+}
+
+/**
+ * Combined payload types
+ */
+type SSEPayload = DeltaEvent | DoneEvent | ErrorEvent
+
+/**
+ * Use Chat Stream composable
+ * 
+ * Handles SSE streaming from the backend using fetch + ReadableStream
+ * instead of native EventSource (which doesn't support Bearer tokens).
+ * 
+ * Backend sends:
+ *   event: delta
+ *   data: {"token":"..."}
+ *   
+ *   event: done
+ *   data: {"message_id":"...","grounded":true,"citations":[...]}
+ *   
+ *   event: error
+ *   data: {"error":{"code":"...","message":"..."}}
+ */
 export function useChatStream() {
-  const streaming        = ref(false)
-  const accumulatedText  = ref('')
-  const streamError      = ref<string | null>(null)
+  const streaming = ref(false)
+  const accumulatedText = ref('')
+  const streamError = ref<string | null>(null)
+  const donePayload = ref<DoneEvent | null>(null)
+  const abortController = ref<AbortController | null>(null)
 
   /**
-   * Stream a chat message from the backend.
-   *
-   * @param url       Full endpoint URL (e.g. http://localhost:8000/api/v1/chat/sessions/{id}/messages)
-   * @param token     Sanctum bearer token
-   * @param content   The user's message text
-   * @param onToken   Callback fired for every streamed token fragment
-   * @param onDone    Callback fired when the stream closes successfully
-   * @param onError   Callback fired on stream error
+   * Stream a message to the backend via SSE
+   * 
+   * @param url - Backend endpoint URL
+   * @param token - Bearer token for authentication
+   * @param content - User message content
+   * @param onToken - Callback for each token delta
+   * @param onDone - Callback when streaming completes
+   * @param onError - Callback when an error occurs
+   * @returns Promise that resolves when streaming completes or fails
    */
   async function stream(
     url: string,
     token: string,
     content: string,
     onToken?: (token: string) => void,
-    onDone?:  (payload: StreamDonePayload) => void,
-    onError?: (payload: StreamErrorPayload) => void,
+    onDone?: (payload: DoneEvent) => void,
+    onError?: (error: ErrorEvent) => void
   ): Promise<void> {
-    streaming.value       = true
-    accumulatedText.value = ''
-    streamError.value     = null
+    // Cancel any existing stream
+    if (abortController.value) {
+      abortController.value.abort()
+    }
 
-    let response: Response
+    abortController.value = new AbortController()
+
+    streaming.value = true
+    accumulatedText.value = ''
+    streamError.value = null
+    donePayload.value = null
+
     try {
-      response = await fetch(url, {
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Accept: 'text/event-stream',
-          Authorization: `Bearer ${token}`,
+          'Accept': 'text/event-stream',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ content }),
+        signal: abortController.value.signal,
       })
-    } catch (e) {
-      streaming.value   = false
-      streamError.value = 'Network error — could not reach the server.'
-      onError?.({ code: 'NETWORK_ERROR', message: streamError.value })
-      return
-    }
 
-    if (!response.ok) {
-      streaming.value   = false
-      streamError.value = response.status === 429
-        ? 'Too many messages. Please wait a moment.'
-        : response.status === 403
-          ? 'Access denied to this chat session.'
-          : `Request failed (${response.status}).`
-      onError?.({ code: `HTTP_${response.status}`, message: streamError.value })
-      return
-    }
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.message || `HTTP ${response.status}`)
+      }
 
-    if (!response.body) {
-      streaming.value   = false
-      streamError.value = 'No response body received.'
-      onError?.({ code: 'NO_BODY', message: streamError.value })
-      return
-    }
+      if (!response.body) {
+        throw new Error('Response body is null')
+      }
 
-    const reader  = response.body.getReader()
-    const decoder = new TextDecoder()
-    let   buffer  = ''
-    let   currentEvent = ''
+      // Parse SSE stream using ReadableStream
+      const reader = response.body.getReader()
+      const decoder = new TextDecoder('utf-8')
+      let buffer = ''
 
-    try {
       while (true) {
         const { done, value } = await reader.read()
-        if (done) break
+
+        if (done) {
+          break
+        }
 
         buffer += decoder.decode(value, { stream: true })
+
+        // Process complete lines
         const lines = buffer.split('\n')
-        buffer = lines.pop() ?? '' // keep incomplete last line
+        buffer = lines.pop() || '' // Keep incomplete line in buffer
 
-        for (const raw of lines) {
-          const line = raw.trimEnd()
-
-          if (line === '') {
-            // Blank line = event boundary; reset event name
-            currentEvent = ''
-            continue
-          }
-
-          if (line.startsWith('event: ')) {
-            currentEvent = line.slice(7).trim()
-            continue
-          }
-
-          if (line.startsWith('data: ')) {
-            const jsonStr = line.slice(6)
-            let payload: Record<string, unknown>
-            try {
-              payload = JSON.parse(jsonStr)
-            } catch {
-              continue // skip malformed line
-            }
-
-            if (currentEvent === 'delta' || payload.token !== undefined) {
-              const tok = payload.token as string
-              accumulatedText.value += tok
-              onToken?.(tok)
-            } else if (currentEvent === 'done' || payload.message_id !== undefined) {
-              onDone?.({
-                message_id: payload.message_id as string,
-                grounded:   payload.grounded as boolean ?? false,
-                citations:  (payload.citations as App.ChatMessageSource[]) ?? [],
-              })
-            } else if (currentEvent === 'error' || payload.error !== undefined) {
-              const err = payload.error as StreamErrorPayload
-              streamError.value = err?.message ?? 'AI service error.'
-              onError?.(err ?? { code: 'STREAM_ERROR', message: streamError.value })
-            }
+        for (const line of lines) {
+          const parsed = parseSSELine(line)
+          if (parsed) {
+            await handleSSEEvent(parsed, onToken, onDone, onError)
           }
         }
       }
+
+      // Process any remaining buffer
+      if (buffer.trim()) {
+        const parsed = parseSSELine(buffer)
+        if (parsed) {
+          await handleSSEEvent(parsed, onToken, onDone, onError)
+        }
+      }
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        // Stream was cancelled
+        return
+      }
+      
+      streamError.value = error.message || 'Unknown error'
+      onError?.({ error: { code: 'STREAM_ERROR', message: streamError.value } })
     } finally {
       streaming.value = false
+    }
+  }
+
+  /**
+   * Cancel the current stream
+   */
+  function cancel() {
+    if (abortController.value) {
+      abortController.value.abort()
+    }
+  }
+
+  /**
+   * Parse a single SSE line
+   * Returns null if line doesn't start with 'data: ' or 'event: '
+   */
+  function parseSSELine(line: string): { type: SSEEvent; data: SSEPayload } | null {
+    line = line.trim()
+
+    // Skip empty lines and comments
+    if (!line || line.startsWith(':')) {
+      return null
+    }
+
+    // Parse event type
+    if (line.startsWith('event: ')) {
+      const eventType = line.substring(7).trim() as SSEEvent
+      // Store event type for later use
+      return { type: eventType, data: { token: '' } as SSEPayload }
+    }
+
+    // Parse data
+    if (line.startsWith('data: ')) {
+      const dataStr = line.substring(6).trim()
+      try {
+        const data = JSON.parse(dataStr)
+        // Determine the event type based on data structure
+        if ('token' in data) {
+          return { type: 'delta', data: data as DeltaEvent }
+        } else if ('error' in data) {
+          return { type: 'error', data: data as ErrorEvent }
+        } else if ('message_id' in data) {
+          return { type: 'done', data: data as DoneEvent }
+        }
+        return null
+      } catch {
+        return null
+      }
+    }
+
+    return null
+  }
+
+  /**
+   * Handle a parsed SSE event
+   */
+  async function handleSSEEvent(
+    parsed: { type: SSEEvent; data: SSEPayload },
+    onToken?: (token: string) => void,
+    onDone?: (payload: DoneEvent) => void,
+    onError?: (error: ErrorEvent) => void
+  ): Promise<void> {
+    const { type, data } = parsed
+
+    switch (type) {
+      case 'delta':
+        if ('token' in data && data.token) {
+          accumulatedText.value += data.token
+          onToken?.(data.token)
+        }
+        break
+
+      case 'done':
+        if ('message_id' in data) {
+          donePayload.value = data as DoneEvent
+          onDone?.(data as DoneEvent)
+        }
+        break
+
+      case 'error':
+        if ('error' in data && data.error) {
+          streamError.value = data.error.message
+          onError?.(data as ErrorEvent)
+        }
+        break
+
+      default:
+        console.warn('Unknown SSE event type:', type)
     }
   }
 
@@ -156,6 +251,11 @@ export function useChatStream() {
     streaming,
     accumulatedText,
     streamError,
+    donePayload,
     stream,
+    cancel,
   }
 }
+
+// Type exports for global types
+export type { SSEEvent, DeltaEvent, DoneEvent, ErrorEvent, Citation }
