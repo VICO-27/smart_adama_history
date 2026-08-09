@@ -12,8 +12,12 @@ import ProfileView from '@/views/ProfileView.vue'
 import ChatView from '@/views/ChatView.vue'
 import ChapterView from '@/views/ChapterView.vue'
 import QuizView from '@/views/QuizView.vue'
+import QuizzesView from '@/views/QuizzesView.vue'
+import AboutView from '@/views/AboutView.vue' // <-- Imported AboutView
 import AdminBookView from '@/views/admin/AdminBookView.vue'
 import AdminQuizView from '@/views/admin/AdminQuizView.vue'
+import AdminBookIngestionView from '@/views/admin/AdminBookIngestionView.vue'
+import AdminChapterEditor from '@/views/admin/AdminChapterEditor.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
 
 const routes: RouteRecordRaw[] = [
@@ -22,6 +26,12 @@ const routes: RouteRecordRaw[] = [
     name: 'landing',
     component: LandingView,
     meta: { public: true },
+  },
+  {
+    path: '/about',               // <-- Added About Route
+    name: 'about',
+    component: AboutView,
+    meta: { public: true },       // Accessible without logging in
   },
   {
     path: '/auth/callback',
@@ -90,15 +100,33 @@ const routes: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: '/quizzes',
+    name: 'quizzes',
+    component: QuizzesView,
+    meta: { requiresAuth: true },
+  },
+  {
     path: '/admin/books',
     name: 'admin-books',
     component: AdminBookView,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {
+    path: '/admin/book-ingestion',
+    name: 'admin-book-ingestion',
+    component: AdminBookIngestionView,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
     path: '/admin/quizzes',
     name: 'admin-quizzes',
     component: AdminQuizView,
+    meta: { requiresAuth: true, requiresAdmin: true },
+  },
+  {
+    path: '/admin/chapters/:id',
+    name: 'admin-chapter-editor',
+    component: AdminChapterEditor,
     meta: { requiresAuth: true, requiresAdmin: true },
   },
   {

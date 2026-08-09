@@ -10,10 +10,15 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src'),
+      // Replaced __dirname with import.meta.dirname to fix the Vite warning
+      '@': resolve(import.meta.dirname, 'src'),
     },
   },
   server: {
     port: 5173,
+    watch: {
+      // Tell Vite's file watcher to completely ignore the corrupted folder
+      ignored: ['**/src/locales/**']
+    }
   },
 })

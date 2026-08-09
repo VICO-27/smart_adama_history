@@ -1,12 +1,10 @@
 <template>
-  <div :class="[
-    'bg-[var(--sa-bg)] text-[var(--sa-dark)] flex flex-col',
-    route.meta.hideNav ? 'h-screen overflow-hidden' : 'min-h-screen'
-  ]">
+  <div class="min-h-screen bg-[var(--sa-bg)] text-[var(--sa-dark)] flex flex-col">
 
     <AppNav @open-auth="openAuthModal" />
 
-    <main :class="['flex-grow w-full relative', route.meta.hideNav ? 'pt-0 h-full' : 'pt-16 md:pt-20']">
+    <!-- Added pt-24 md:pt-28 to give ~1cm of clean breathing room below the fixed navbar -->
+    <main class="flex-grow w-full relative pt-24 md:pt-28">
       <slot />
     </main>
 
@@ -21,11 +19,12 @@
 
 <script setup lang="ts">
 import { ref } from 'vue'
-import { useRoute } from 'vue-router'
+import { useAuthStore } from '@/stores/auth'
 import AppNav from './AppNav.vue'
 import AuthModal from '@/components/auth/AuthModal.vue'
 
-const route = useRoute()
+const authStore = useAuthStore()
+
 const isAuthModalOpen = ref(false)
 const authMode = ref<'login' | 'register'>('login')
 
