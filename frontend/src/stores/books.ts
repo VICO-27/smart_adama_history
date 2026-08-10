@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref } from 'vue'
 import { booksApi } from '@/api/books'
+import apiClient from '@/api/client'
 
 export const useBooksStore = defineStore('books', () => {
   const books = ref<any[]>([])
@@ -13,11 +14,7 @@ export const useBooksStore = defineStore('books', () => {
   async function loadBooks() {
     loading.value = true
     try {
-      // Cast as 'any' to bypass TS strict typing on the unwrapped Axios response
       const payload = (await booksApi.list()) as any
-      console.log('Books API Payload:', payload) // Let's log it to be 100% sure!
-
-      // Because the client unwraps it, the array is directly inside payload.books
       books.value = payload.books || payload.data?.books || payload.data || payload || []
     } catch (error) {
       console.error('Failed to load books:', error)
@@ -42,9 +39,14 @@ export const useBooksStore = defineStore('books', () => {
 
   async function markChapterRead(chapterId: string) {
     try {
-      await booksApi.markChapterRead(chapterId)
+      if (booksApi.markChapterRead) {
+        await booksApi.markChapterRead(chapterId)
+      } else {
+        await apiClient.post(`/chapters/${chapterId}/read`)
+      }
+      console.log(`✅ Chapter ${chapterId} marked as read on backend!`)
     } catch (error) {
-      console.error('Failed to mark chapter read:', error)
+      console.error('Failed to mark chapter read on backend:', error)
     }
   }
 

@@ -1,0 +1,293 @@
+Building Smart Adama: Comprehensive Guide
+Copyright c 2025
+i. Authors
+(a) Shanko Chura Aredo (Ph.D)
+(b) Hailu Jelde Wedajo (MA)
+(c) Chala Seya Yadola (MA)
+(d) Kedir Elka Amigna (MSc.)
+(e) Deyas Deme Merga (MSc.)
+(f) Fikadu Nigussie Haile (BSc.)
+ii. Advisor and Reviewer
+• Jima Gobena Dadi (MSc.)
+All rights reserved. No part of this book may be reproduced, stored in a retrieval system, or
+transmitted in any form or by any means, electronic, mechanical, photocopying, recording,
+or otherwise, without the prior written permission or consent of the publisher and Adama
+City Administration.
+Published by Harambe University
+Adama, Ethiopia
+First Edition: February 2025
+2
+Mayor’s Message
+Dear Citizens,
+I am excited to present our Smart Adama Guidebook, which demonstrates our commitment
+to building a smarter, sustainable, and inclusive urban environment. As we confront rapid
+population growth, environmental issues, public safety concerns, and rising service demands,
+it is clear that innovative solutions are needed. This guidebook details our strategic plan
+for implementing advanced technologies, promoting innovation, and leveraging data-driven
+initiatives to address these challenges. Through our smart Adama initiatives, we strive to
+improve residents’ quality of life by developing resilient public services, ensuring safety, and
+creating a competitive city that benefits both residents and local businesses.
+Our vision is centered around the aspiration to elevate the standard of living for every individual in our community. By uniting our efforts, we can collaboratively create an innovative
+hub that supports entrepreneurs, improves the overall business climate, and fosters a vibrant, inclusive, and livable city that is prepared to meet the demands and opportunities of
+the future.
+Furthermore, I would like to take this opportunity to extend my heartfelt gratitude to all our
+stakeholders. Your invaluable contributions and collaborative spirit have played a pivotal
+role in the ongoing transformation of Adama. It is through your dedication and hard work
+that we are witnessing significant advancements, and we wholeheartedly acknowledge the
+positive impact your efforts will undoubtedly have on shaping the future of our beloved city.
+Together, we are paving the way for a brighter tomorrow.
+Sincerely,
+Mr. Hailu Jelde
+Mayor of Adama City
+i
+Contents
+1 Introduction 1
+1.1 Background . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 1
+1.2 Global insight of Smart City Initiatives . . . . . . . . . . . . . . . . . . . . . 4
+1.3 Smart Adama Initiative Architecture . . . . . . . . . . . . . . . . . . . . . . 8
+1.4 System Model for Smart Adama Initiatives . . . . . . . . . . . . . . . . . . . 14
+1.5.1 Limiting Factors . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+1.5.2 Opportunities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 21
+1.7 Stakeholders Involvements . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 25
+2 Smart Governance 26
+2.1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 26
+2.2 Major Activities and Implementation Strategies . . . . . . . . . . . . . . . . . 28
+2.2.1 Major Activities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 28
+2.2.2 Implementation Procedures . . . . . . . . . . . . . . . . . . . . . . . . 52
+2.3 Future Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 59
+3 Digital Adama 65
+3.1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 65
+3.2 Major Activities and Implementation Strategies . . . . . . . . . . . . . . . . . 69
+3.2.1 Major Activities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 69
+3.2.2 Implementation Procedures . . . . . . . . . . . . . . . . . . . . . . . . 69
+3.3 Future Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 74
+4 Smart Security 76
+4.1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 76
+ii
+4.2 Major Activities and Implementation Strategies . . . . . . . . . . . . . . . . . 80
+4.2.1 Major Activities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 80
+4.3 Modern Technologies for Smart Security . . . . . . . . . . . . . . . . . . . . . 95
+4.4 Components of a CAD System . . . . . . . . . . . . . . . . . . . . . . . . . . 200
+4.4.1 Call Center . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 200
+4.4.2 Incident Management Module . . . . . . . . . . . . . . . . . . . . . . . 201
+4.4.3 Resource Allocation and Dispatch Module . . . . . . . . . . . . . . . 201
+4.4.4 Communication Interface . . . . . . . . . . . . . . . . . . . . . . . . . 201
+4.4.5 Geographic Information System (GIS) Integration . . . . . . . . . . . 202
+4.4.6 Data Analytics and Reporting . . . . . . . . . . . . . . . . . . . . . . 202
+4.4.7 Database Management and Integration . . . . . . . . . . . . . . . . . 202
+4.5 System Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 202
+5 Smart Urban Design and Land Use Management 212
+5.1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 212
+5.1.1 Adama City Smart Structural plan . . . . . . . . . . . . . . . . . . . 227
+5.1.2 Smart City Local and Neighborhood Development Plan . . . . . . . . 228
+5.1.3 Implementation Procedures . . . . . . . . . . . . . . . . . . . . . . . . 233
+6 Smart Environment and Organic Production 235
+6.1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 235
+6.2 Major Activities and Implementation strategies . . . . . . . . . . . . . . . . . 239
+6.2.1 Major Activities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 239
+6.2.2 Implementation Procedures . . . . . . . . . . . . . . . . . . . . . . . . 266
+7 Smart Mobility 271
+7.1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 271
+7.2 Major Activities and Implementation Strategies . . . . . . . . . . . . . . . . . 275
+7.2.1 Major Activities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 275
+7.2.2 Implementation Strategies . . . . . . . . . . . . . . . . . . . . . . . . . 337
+7.3 Smart Mobility Enabling Technologies . . . . . . . . . . . . . . . . . . . . . . 341
+7.4 Future Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 344
+8 Smart Social Services 348
+8.1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 348
+iii
+8.2 Major Activities and Implementation Strategies . . . . . . . . . . . . . . . . 355
+8.2.1 Major Activities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 355
+8.2.2 Implementation Strategies . . . . . . . . . . . . . . . . . . . . . . . . . 356
+8.3 Future Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 361
+9 Smart Tourism and Culture 362
+9.1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 362
+9.2 Major Activities and Implementation Strategies . . . . . . . . . . . . . . . . 371
+9.2.1 Major Activities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 371
+9.2.2 Implementation Procedures . . . . . . . . . . . . . . . . . . . . . . . . 389
+9.3 Future Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 392
+10 Smart Public Relation, Research and Knowledge Management 395
+10.1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 395
+10.2 Major Activities and Implementation Strategies . . . . . . . . . . . . . . . . . 399
+10.2.1 Major Activities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 399
+10.2.2 Implementation Strategies . . . . . . . . . . . . . . . . . . . . . . . . 400
+10.3 Future Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 402
+11 Smart People 404
+11.1 Introduction . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 404
+11.2 Major Activities and Implementation Strategies . . . . . . . . . . . . . . . . . 406
+11.2.1 Major Activities . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 406
+11.2.2 Implementation Strategies . . . . . . . . . . . . . . . . . . . . . . . . . 407
+11.3 Future Considerations . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 409
+iv
+List of Figures
+1.1 A Model for Smart Adama Initiatives . . . . . . . . . . . . . . . . . . . . . . 16
+1.2 Smart Adama Framework . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 17
+2.2 System model for Adama One Stop Service . . . . . . . . . . . . . . . . . . . 37
+2.3 One-Stop Service Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 44
+2.5 Smart Governance Framework . . . . . . . . . . . . . . . . . . . . . . . . . . . 52
+2.6 Smart Governance Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 55
+3.5 Digital Adama Framework . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 74
+4.45 Integration model for a call center and CAD system. . . . . . . . . . . . . . . 203
+5.1 Adama New Urban Design . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 214
+5.2 Document Digitizing Business Process . . . . . . . . . . . . . . . . . . . . . . 217
+5.3 New Certificate Preparation Business Process . . . . . . . . . . . . . . . . . . 218
+5.4 Title Replacement Business Process . . . . . . . . . . . . . . . . . . . . . . . 220
+5.5 Mortgage Registration Business Process . . . . . . . . . . . . . . . . . . . . . 221
+5.6 Transfer or Property Business Process . . . . . . . . . . . . . . . . . . . . . . 222
+5.7 Land Parcel Split Business Process . . . . . . . . . . . . . . . . . . . . . . . . 224
+5.8 Parcel Merge Business Process . . . . . . . . . . . . . . . . . . . . . . . . . . 225
+5.9 Eland and cadastral system . . . . . . . . . . . . . . . . . . . . . . . . . . . . 226
+5.10 Smart Urban Design and Land Use Management Framework . . . . . . . . . 234
+6.6 Model for Smart Environment . . . . . . . . . . . . . . . . . . . . . . . . . . . 270
+7.19 Smart Mobility Framework . . . . . . . . . . . . . . . . . . . . . . . . . . . . 339
+7.20 Adama Smart Mobility Model . . . . . . . . . . . . . . . . . . . . . . . . . . . 341
+v
+7.21 Smart mobility Enabling technologies . . . . . . . . . . . . . . . . . . . . . . 342
+8.2 Smart Health Framework . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 358
+8.3 Smart Education Framework . . . . . . . . . . . . . . . . . . . . . . . . . . . 359
+8.4 Smart Utility Framework . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 360
+8.5 Smart Social Services Framework . . . . . . . . . . . . . . . . . . . . . . . . . 361
+9.5 Smart Tourism Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 392
+10.1 Smart Public Relation, Research and Knowledge Management Framework . 402
+11.1 Smart People Model . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 409
+vi
+List of Tables
+4.1 Vulnerability scanning tools [73] . . . . . . . . . . . . . . . . . . . . . . . . . 104
+4.2 Use Cases of Drones for Public Safety [136]. . . . . . . . . . . . . . . . . . . . 194
+7.1 Street Classification [186]. . . . . . . . . . . . . . . . . . . . . . . . . . . . . . 284
+7.2 Basic principles of walkway design [194]. . . . . . . . . . . . . . . . . . . . . . 299
+7.3 Basic principles for creating cycle lanes [199–201] . . . . . . . . . . . . . . . . 307
+vii
+List of Acronyms
+2K 2048-pixel display
+3GPP Third Generation Partnership Project
+4K 4096-pixel display
+8K 8192-Pixel display
+AES Advanced Encryption Standard
+AI Artificial Intelligence
+BOD Biological Oxygen Demand
+BRT Bus Rapid Transit
+BS Base Station
+BBU Baseband Unit
+CCPA California Consumer Privacy Act
+CCTV Closed-Circuit Television
+COD Carbon Oxygen Demand
+CPRI Common Public Radio Interface
+DDoS Distributed Denial of Service
+DMS Document Management System
+DNA Deoxyribonucleic Acid
+DNS Domain Name Server
+eCPRI enghanced Common Public Radio Interface
+eMBB enhanced Mobile Broadband
+EN-DC Evolved Non-standalone Dual Connectivity
+ESPA Environmental and Social Performance Audit
+FCC Federal Communication Commission
+FDD Frequency Division Duplex
+FSPL Free Space Path Loss
+GDPR General Data Protection Regulation
+GHG Green House Gas
+GIS Geographic Information Systems
+gNB Next Generation Node B
+GPS Global Positioning System
+GSM Global System for Mobile
+IBM International Business Machines
+IEEE Institute of Electrical and Electronics Engineering
+ILP Intelligent-Led Policing
+IP Internet Protocol
+IPD In Patient Department
+ITU International Telecommunication Union
+LDP Local Developmental Plan
+LEA Law Enforcement Agency
+LED Light Emitting Diode
+LiDAR Light Detection and Ranging
+LoRa WAN Long Range Wide Area Network
+LTE Long Term Evolution
+M2M Machine to Machine
+MaaS Mobility as a Service
+mmWave millimeter Wave
+MNO Mobile Network Operator
+MPLS Multi-Protocol Label Switching
+NB-IoT Narrow Band Internet of Things
+NDP Neighborhood Developmental Plan
+NGO Non-Governmental Organization
+NR New Radio
+OPD Out Patient Department
+O-RAN Open Radio Access Network
+PCI Peripheral Component Interconnect
+PH Potential of Hydrogen
+PIR Positive Infrared
+RAN Radio Access Network
+RAT Radio Access Technology
+RF Radio Frequency
+RFID Radio Frequency Identification
+RRU Remote Radio Unit
+SCG Secondary Cell Group
+SMART Specific, Accurate Measurable, Realistic and Time
+bounded
+ix
+TDD Time Division Duplex
+TDS Total Dissolved Solid
+URL Uniform Resource Locator
+uRLLC ultra–Reliable Low Latency Communications
+UTRAN Universal Terrestrial Radio Access Network
+UWB Ultra-Wide Band
+WAN Wide Area Network
+WiFi Wireless Fidelity
+ZTE Zhongxing Telecommunication Equipment Corporation
+x
+Preface
+As Adama City stands on the threshold of a transformation era in Ethiopian cities, this
+book serves as a comprehensive guide to envisioning and actualizing a smart city that is
+both innovative and inclusive. Achieving a smart city requires more than just incorporating
+innovative technologies; it also entails cultivating a well-balanced combination of sustainability, connectivity, and citizen involvement. We explore the many facets of smart city
+development in this book, offering a path that includes data-driven decision-making, digital
+infrastructure, and residents’ critical involvement in determining their urban environment.
+Three guiding principles improving everyone’s quality of life, guaranteeing effective resource
+management, and encouraging sustainable growth form the basis of Adama City’s smart
+city vision. With the use of big data, AI, and IoT technologies, we hope to establish an
+ecosystem that optimizes urban living through intelligent systems and creative solutions.
+Adapted to Adama City’s specific setting and goals, this book presents strategic initiatives
+and real-world examples from international smart city programs.
+The proactive participation of Adama’s residents in the smart city revolution is one of the
+main points addressed in this book. Residents’ involvement and engagement are essential
+to a smart city’s success because they add to the liveliness and sustainability of the city’s
+infrastructure. The chapters that follow will examine how community-driven initiatives and
+smart technologies may improve every aspect of urban living, from energy-efficient buildings
+and smart transportation to digital health care and e-governance.
+Legislators, corporate executives, urban planners, universities and Adama residents are
+all key stakeholders in this process. With the information and resources required to successfully traverse the difficulties of smart city development, this book aims to both inspire
+and instruct. By working together, we can create a future in which Adama City not only
+successfully navigates the difficulties posed by urbanization, but also becomes a model for
+exclusivity, creativity, and sustainability. Allow this book to serve as your travel companion
+and road-map as we set out on this thrilling and revolutionary path to a smarter Adama
+City.
+xi
+Acknowledgments
+We begin by expressing our deepest gratitude to the visionary leaders of Adama City, and
+in particular, to the current mayor, whose steadfast commitment to sustainability and innovation has been pivotal in bringing this ambitious project to fruition. The National Road
+Map of synergy has been a key driver of our initiatives, and we are truly appreciative of its
+role in shaping the direction of progress. We also extend our heartfelt thanks to the regional
+government officials, the public, and all key stakeholders for their valuable guidance and
+unwavering support throughout this journey.
+We are especially grateful to the head of Adama City’s Office of Science and Technology,
+as well as the skilled data analysts, IT specialists, and engineers from diverse disciplines.
+Their expertise and contributions have been indispensable in providing essential resources,
+technical assistance, and facilitation at every phase of the project. We would like to express
+our sincere gratitude to Mr. Jima Gobena for his invaluable contributions as both an
+advisor and a reviewer for this book. His expertise, insightful guidance, and thoughtful
+feedback have significantly shaped the quality and depth of the content, ensuring that it
+meets the highest standards. We also extend our heartfelt thanks to Mr. Bayisa Taye
+for his dedicated involvement in the review process. His contributions, marked by careful
+attention to detail and a commitment to excellence, have been instrumental in refining the
+manuscript.
+Moreover, extend our heartfelt gratitude to the local businesses, community organizations,
+academic institutions, research centers, and citizens of Adama who participated in surveys,
+focus groups, and public consultations. Their enthusiastic engagement and constructive
+feedback have been crucial in ensuring our plans are practical and aligned with community
+needs, helping shape our vision for an inclusive, sustainable, and responsive urban environment.
+Lastly, we deeply appreciate the publishing team of Harambe University for their dedication
+and expertise in bringing this book to fruition. Their diligent efforts, attention to detail,
+and professionalism have been vital throughout the publishing process. We hope this book
+inspires as Adama City strives to become a model smart city, reflecting the collaborative
+spirit and shared vision of everyone involved.
+xii
