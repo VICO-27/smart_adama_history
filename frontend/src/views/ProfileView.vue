@@ -1,15 +1,18 @@
 <script setup lang="ts">
-import { ref, onMounted, shallowRef, onUnmounted } from 'vue'
+import { ref, computed, onMounted, shallowRef, onUnmounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useProgressStore } from '@/stores/progress'
 import AppShell from '@/components/layout/AppShell.vue'
 import SaCard from '@/components/ui/SaCard.vue'
+import { useI18n } from 'vue-i18n'
 
 const router = useRouter()
 const auth = useAuthStore()
+const progress = useProgressStore()
+const { t } = useI18n()
 
 // --- STATE ---
-
 const formData = ref({
   name: auth.user?.name || '',
   notify_badges: auth.user?.notify_badges ?? true,
@@ -26,8 +29,37 @@ const profileMessage = ref('')
 const securityMessage = ref({ text: '', type: '' })
 const isSavingSecurity = ref(false)
 
-// --- ACTIONS ---
+// --- DARK MODE STATE ---
+const isDarkMode = ref(false)
 
+const setTheme = (theme: 'light' | 'dark') => {
+  isDarkMode.value = theme === 'dark'
+  if (theme === 'dark') {
+    document.documentElement.classList.add('dark')
+    localStorage.setItem('theme', 'dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+    localStorage.setItem('theme', 'light')
+  }
+}
+
+// --- COMPUTED LEARNING METRICS ---
+const d = computed(() => progress.dashboard)
+
+const memberSince = computed(() => {
+  if (!auth.user?.created_at) return 'Member'
+  const date = new Date(auth.user.created_at)
+  return `Member since ${date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`
+})
+
+const profileCompletionPct = computed(() => {
+  let score = 50 // Base for account creation & email
+  if (auth.user?.name) score += 25
+  if (auth.user?.avatar_url) score += 25
+  return score
+})
+
+// --- ACTIONS ---
 async function saveProfile() {
   profileMessage.value = ''
   try {
@@ -46,8 +78,6 @@ async function updatePassword() {
   isSavingSecurity.value = true
   securityMessage.value = { text: '', type: '' }
   
-  // NOTE: You will need to add authApi.changePassword() to your api/auth.ts
-  // For now, this simulates the network request.
   setTimeout(() => {
     if (passwordForm.value.new_password !== passwordForm.value.new_password_confirmation) {
       securityMessage.value = { text: 'New passwords do not match.', type: 'error' }
@@ -107,7 +137,21 @@ function handleSpotlightMove(e: PointerEvent) {
   })
 }
 
-onMounted(() => document.addEventListener('pointermove', handleSpotlightMove, { passive: true }))
+onMounted(() => {
+  progress.loadAll()
+  document.addEventListener('pointermove', handleSpotlightMove, { passive: true })
+  
+  // Initialize Dark Mode state based on localStorage or OS preference
+  isDarkMode.value = localStorage.getItem('theme') === 'dark' || 
+    (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)
+    
+  if (isDarkMode.value) {
+    document.documentElement.classList.add('dark')
+  } else {
+    document.documentElement.classList.remove('dark')
+  }
+})
+
 onUnmounted(() => {
   document.removeEventListener('pointermove', handleSpotlightMove)
   if (spotlightRaf) cancelAnimationFrame(spotlightRaf)
@@ -116,147 +160,241 @@ onUnmounted(() => {
 
 <template>
   <AppShell>
-    <!-- Reverted back to max-w-4xl to keep it centered and clean -->
-    <div class="max-w-4xl mx-auto px-4 md:px-6 space-y-8 pb-24">
+    <div class="max-w-5xl mx-auto px-4 md:px-6 space-y-12 pb-24 mt-16">
       
-      <!-- Header -->
-      <div class="fade-up pt-8" style="animation-delay: 0ms;">
-        <h1 class="font-display text-4xl font-semibold text-[var(--sa-dark)]">Account Settings</h1>
-        <p class="text-[var(--sa-taupe)] mt-2">Manage your personal information, security, and preferences.</p>
-      </div>
-
-      <!-- 1. Main Profile Card -->
-      <SaCard class="spotlight-card fade-up relative overflow-hidden rounded-[2rem] p-8 md:p-10 border border-[var(--sa-gray)] bg-white" style="animation-delay: 100ms;">
-        <div class="relative z-10 flex flex-col md:flex-row gap-10">
+      <!-- 1. HERO / PROFILE IDENTITY -->
+      <section class="relative overflow-hidden rounded-[2.5rem] bg-gradient-to-br from-brand-500 to-brand-600 text-white p-8 md:p-12 shadow-xl spotlight-card fade-up">
+        <div class="relative z-10 flex flex-col md:flex-row items-center md:items-start gap-8">
           
-          <!-- Avatar Column -->
-          <div class="flex flex-col items-center md:items-start gap-4">
-            <div class="w-32 h-32 rounded-full overflow-hidden border border-[var(--sa-gray)] bg-gray-50 flex items-center justify-center relative group shadow-sm shrink-0">
+          <div class="relative group shrink-0">
+            <div class="w-32 h-32 md:w-36 md:h-36 rounded-full overflow-hidden border-4 border-white/20 bg-white/10 flex items-center justify-center shadow-inner">
               <img v-if="auth.user?.avatar_url" :src="auth.user.avatar_url" alt="Avatar" class="w-full h-full object-cover" />
-              <span v-else class="text-4xl text-[var(--sa-taupe)]">{{ formData.name.charAt(0).toUpperCase() }}</span>
-              
-              <div @click="fileInputRef?.click()" class="absolute inset-0 bg-black/50 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-sm">
-                <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
-                <span class="text-xs font-medium">Update</span>
-              </div>
+              <span v-else class="text-5xl font-display font-bold text-white">{{ formData.name.charAt(0).toUpperCase() }}</span>
+            </div>
+            <div @click="fileInputRef?.click()" class="absolute inset-0 rounded-full bg-black/60 flex flex-col items-center justify-center text-white opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer backdrop-blur-xs">
+              <svg class="w-6 h-6 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+              <span class="text-xs font-medium uppercase tracking-wider">{{ $t('profile.change_photo') }}</span>
             </div>
             <input type="file" ref="fileInputRef" class="hidden" accept="image/*" @change="handleFileSelected" />
-            <p class="text-xs text-[var(--sa-taupe)] text-center md:text-left">JPG or PNG. Max 5MB.</p>
           </div>
 
-          <!-- Form Column -->
-          <form @submit.prevent="saveProfile" class="flex-1 space-y-6 w-full">
-            <div class="space-y-1">
-              <label class="text-sm font-semibold text-[var(--sa-dark)]">Full Name</label>
-              <input 
-                v-model="formData.name" 
-                type="text" 
-                class="w-full bg-gray-50 border border-[var(--sa-gray)] rounded-xl px-4 py-3 text-[var(--sa-dark)] focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent transition-all"
-              />
-              <span v-if="auth.fieldErrors.name" class="text-red-500 text-xs mt-1 block">{{ auth.fieldErrors.name }}</span>
+          <div class="flex-1 text-center md:text-left flex flex-col justify-center">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-md text-xs font-mono tracking-widest text-brand-100 uppercase mb-3 mx-auto md:mx-0 border border-white/10">
+              ⚡️ Smart Adama Scholar
             </div>
+            <h1 class="font-display text-3xl md:text-5xl font-semibold tracking-tight text-white mb-2">
+              {{ formData.name || 'Smart Adama User' }}
+            </h1>
+            <p class="text-brand-100 text-sm md:text-base font-medium opacity-90 mb-4">
+              {{ auth.user?.email }} • <span class="text-brand-200">{{ memberSince }}</span>
+            </p>
 
-            <div class="space-y-1">
-              <label class="text-sm font-semibold text-[var(--sa-dark)]">Email Address</label>
-              <input 
-                :value="auth.user?.email" 
-                type="email" 
-                disabled
-                class="w-full bg-gray-100 border border-[var(--sa-gray)] rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
-              />
-              <p class="text-xs text-[var(--sa-taupe)] mt-1">Email cannot be changed.</p>
+            <div class="w-full max-w-md bg-black/20 rounded-full h-2 overflow-hidden backdrop-blur-sm mx-auto md:mx-0 mb-2">
+              <div class="bg-emerald-400 h-full rounded-full transition-all duration-1000 ease-out" :style="`width: ${profileCompletionPct}%`"></div>
             </div>
-
-            <div class="pt-2 flex items-center justify-between">
-              <button 
-                type="submit" 
-                :disabled="auth.loading"
-                class="bg-black text-white rounded-full px-8 py-3 font-semibold hover:bg-gray-800 transition-all active:scale-95 shadow-md disabled:opacity-50"
-              >
-                {{ auth.loading ? 'Saving...' : 'Save Changes' }}
-              </button>
-              <span v-if="profileMessage" class="text-emerald-500 text-sm font-medium">{{ profileMessage }}</span>
+            <div class="flex justify-between items-center max-w-md text-xs text-brand-200 mx-auto md:mx-0">
+              <span>{{ $t('profile.completion') }}</span>
+              <span class="font-bold text-white">{{ profileCompletionPct }}% Complete</span>
             </div>
-          </form>
+          </div>
 
         </div>
-      </SaCard>
+        <div class="absolute -bottom-24 -right-24 w-96 h-96 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+      </section>
 
-      <!-- 2. Security Card -->
-      <SaCard class="spotlight-card fade-up relative overflow-hidden rounded-[2rem] p-8 md:p-10 border border-[var(--sa-gray)] bg-white" style="animation-delay: 150ms;">
-        <div class="relative z-10">
-          <h3 class="font-display text-2xl font-semibold text-[var(--sa-dark)] mb-6">Security</h3>
-          
-          <form @submit.prevent="updatePassword" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div class="space-y-1 md:col-span-2">
-              <label class="text-sm font-semibold text-[var(--sa-dark)]">Current Password</label>
-              <input v-model="passwordForm.current_password" type="password" required class="w-full bg-gray-50 border border-[var(--sa-gray)] rounded-xl px-4 py-3 text-[var(--sa-dark)] focus:outline-none focus:ring-2 focus:ring-black transition-all max-w-md" />
-            </div>
-            
-            <div class="space-y-1">
-              <label class="text-sm font-semibold text-[var(--sa-dark)]">New Password</label>
-              <input v-model="passwordForm.new_password" type="password" required minlength="8" class="w-full bg-gray-50 border border-[var(--sa-gray)] rounded-xl px-4 py-3 text-[var(--sa-dark)] focus:outline-none focus:ring-2 focus:ring-black transition-all" />
-            </div>
-            
-            <div class="space-y-1">
-              <label class="text-sm font-semibold text-[var(--sa-dark)]">Confirm New Password</label>
-              <input v-model="passwordForm.new_password_confirmation" type="password" required minlength="8" class="w-full bg-gray-50 border border-[var(--sa-gray)] rounded-xl px-4 py-3 text-[var(--sa-dark)] focus:outline-none focus:ring-2 focus:ring-black transition-all" />
-            </div>
+      <!-- 2. LEARNING JOURNEY & SNAPSHOT -->
+      <section v-if="d" class="space-y-6 fade-up" style="animation-delay: 100ms;">
+        <div class="flex items-center justify-between">
+          <h2 class="font-display text-2xl font-semibold text-[var(--sa-dark)]">{{ $t('profile.journey') }}</h2>
+          <span class="text-xs font-mono uppercase tracking-widest text-[var(--sa-taupe)]">{{ $t('profile.metrics') }}</span>
+        </div>
 
-            <div class="md:col-span-2 pt-2 flex items-center justify-between">
-              <button type="submit" :disabled="isSavingSecurity" class="border-2 border-black text-black rounded-full px-8 py-3 font-bold hover:bg-black hover:text-white transition-all active:scale-95 disabled:opacity-50">
-                {{ isSavingSecurity ? 'Updating...' : 'Update Password' }}
-              </button>
-              <span v-if="securityMessage.text" class="text-sm font-medium" :class="securityMessage.type === 'error' ? 'text-red-500' : 'text-emerald-500'">
-                {{ securityMessage.text }}
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div class="p-6 rounded-2xl bg-white border border-[var(--sa-gray)] shadow-sm flex flex-col justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-[var(--sa-taupe)]">{{ $t('profile.chap_read') }}</span>
+            <div class="mt-4 flex items-baseline gap-2">
+              <span class="text-3xl font-display font-bold text-[var(--sa-dark)]">{{ d.completed_chapters || 0 }}</span>
+              <span class="text-sm text-[var(--sa-taupe)]">/ {{ d.total_chapters || 12 }}</span>
+            </div>
+            <div class="w-full bg-gray-100 h-1.5 rounded-full mt-3 overflow-hidden">
+              <div class="bg-brand-500 h-full rounded-full" :style="`width: ${d.completion_pct || 0}%`"></div>
+            </div>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-[var(--sa-gray)] shadow-sm flex flex-col justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-[var(--sa-taupe)]">{{ $t('profile.streak') }}</span>
+            <div class="mt-4 flex items-baseline gap-2">
+              <span class="text-3xl font-display font-bold text-orange-600">{{ d.current_streak || 0 }}</span>
+              <span class="text-sm text-orange-500 font-medium">Days 🔥</span>
+            </div>
+            <p class="text-[11px] text-[var(--sa-taupe)] mt-3">{{ $t('profile.streak_desc') }}</p>
+          </div>
+
+          <div class="p-6 rounded-2xl bg-white border border-[var(--sa-gray)] shadow-sm flex flex-col justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-[var(--sa-taupe)]">{{ $t('profile.avg_score') }}</span>
+            <div class="mt-4 flex items-baseline gap-2">
+              <span class="text-3xl font-display font-bold text-indigo-600">
+                {{ d.average_quiz_score !== null ? `${d.average_quiz_score}%` : '—' }}
               </span>
             </div>
-          </form>
-        </div>
-      </SaCard>
+            <p class="text-[11px] text-[var(--sa-taupe)] mt-3">{{ d.quizzes_passed || 0 }} {{ $t('profile.quizzes_passed') }}</p>
+          </div>
 
-      <!-- 3. Preferences & Danger Zone -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6 fade-up" style="animation-delay: 200ms;">
+          <div class="p-6 rounded-2xl bg-white border border-[var(--sa-gray)] shadow-sm flex flex-col justify-between">
+            <span class="text-xs font-bold uppercase tracking-wider text-[var(--sa-taupe)]">{{ $t('profile.badges_earned') }}</span>
+            <div class="mt-4 flex items-baseline gap-2">
+              <span class="text-3xl font-display font-bold text-fuchsia-600">{{ d.earned_badge_count || 0 }}</span>
+              <span class="text-sm text-fuchsia-500 font-medium">🎖️</span>
+            </div>
+            <p class="text-[11px] text-[var(--sa-taupe)] mt-3">{{ $t('profile.milestones') }}</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- 3. PERSONAL INFORMATION & SECURITY -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 fade-up" style="animation-delay: 200ms;">
         
-        <!-- Preferences (Restored layout, no language selector) -->
-        <SaCard class="spotlight-card rounded-[2rem] p-8 border border-[var(--sa-gray)] bg-white h-full">
-          <div class="relative z-10">
-            <h3 class="font-display text-xl font-semibold text-[var(--sa-dark)] mb-6">Preferences</h3>
-            
-            <label class="flex items-center justify-between cursor-pointer group">
-              <div>
-                <p class="font-medium text-[var(--sa-dark)]">Badge Notifications</p>
-                <p class="text-sm text-[var(--sa-taupe)]">Show popups when I earn a new badge</p>
+        <SaCard class="spotlight-card rounded-[2rem] p-8 border border-[var(--sa-gray)] bg-white flex flex-col justify-between h-full">
+          <div>
+            <h3 class="font-display text-xl font-semibold text-[var(--sa-dark)] mb-2">{{ $t('profile.title') }}</h3>
+            <p class="text-sm text-[var(--sa-taupe)] mb-6">{{ $t('profile.subtitle') }}</p>
+
+            <form @submit.prevent="saveProfile" class="space-y-5">
+              <div class="space-y-1">
+                <label class="text-sm font-semibold text-[var(--sa-dark)]">{{ $t('profile.fullname') }}</label>
+                <input 
+                  v-model="formData.name" 
+                  type="text" 
+                  class="w-full bg-gray-50 border border-[var(--sa-gray)] rounded-xl px-4 py-3 text-[var(--sa-dark)] focus:outline-none focus:ring-2 focus:ring-black transition-all"
+                />
+                <span v-if="auth.fieldErrors.name" class="text-red-500 text-xs mt-1 block">{{ auth.fieldErrors.name }}</span>
               </div>
-              <!-- Custom Toggle -->
+
+              <div class="space-y-1">
+                <label class="text-sm font-semibold text-[var(--sa-dark)]">{{ $t('profile.email') }}</label>
+                <input 
+                  :value="auth.user?.email" 
+                  type="email" 
+                  disabled
+                  class="w-full bg-gray-100 border border-[var(--sa-gray)] rounded-xl px-4 py-3 text-gray-500 cursor-not-allowed"
+                />
+                <p class="text-xs text-[var(--sa-taupe)] mt-1">{{ $t('profile.email_desc') }}</p>
+              </div>
+
+              <div class="pt-2 flex items-center justify-between">
+                <button 
+                  type="submit" 
+                  :disabled="auth.loading"
+                  class="bg-black text-white rounded-full px-8 py-3 font-semibold hover:bg-gray-800 transition-all active:scale-95 shadow-md disabled:opacity-50 text-sm cursor-pointer"
+                >
+                  {{ auth.loading ? $t('profile.saving') : $t('profile.save') }}
+                </button>
+                <span v-if="profileMessage" class="text-emerald-500 text-sm font-medium">{{ profileMessage }}</span>
+              </div>
+            </form>
+          </div>
+        </SaCard>
+
+        <SaCard class="spotlight-card rounded-[2rem] p-8 border border-[var(--sa-gray)] bg-white flex flex-col justify-between h-full">
+          <div>
+            <h3 class="font-display text-xl font-semibold text-[var(--sa-dark)] mb-2">{{ $t('profile.security') }}</h3>
+            <p class="text-sm text-[var(--sa-taupe)] mb-6">{{ $t('profile.security_desc') }}</p>
+
+            <form @submit.prevent="updatePassword" class="space-y-4">
+              <div class="space-y-1">
+                <label class="text-sm font-semibold text-[var(--sa-dark)]">{{ $t('profile.current_pass') }}</label>
+                <input v-model="passwordForm.current_password" type="password" required class="w-full bg-gray-50 border border-[var(--sa-gray)] rounded-xl px-4 py-3 text-[var(--sa-dark)] focus:outline-none focus:ring-2 focus:ring-black transition-all text-sm" />
+              </div>
+              
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="space-y-1">
+                  <label class="text-sm font-semibold text-[var(--sa-dark)]">{{ $t('profile.new_pass') }}</label>
+                  <input v-model="passwordForm.new_password" type="password" required minlength="8" class="w-full bg-gray-50 border border-[var(--sa-gray)] rounded-xl px-4 py-3 text-[var(--sa-dark)] focus:outline-none focus:ring-2 focus:ring-black transition-all text-sm" />
+                </div>
+                
+                <div class="space-y-1">
+                  <label class="text-sm font-semibold text-[var(--sa-dark)]">{{ $t('profile.confirm_pass') }}</label>
+                  <input v-model="passwordForm.new_password_confirmation" type="password" required minlength="8" class="w-full bg-gray-50 border border-[var(--sa-gray)] rounded-xl px-4 py-3 text-[var(--sa-dark)] focus:outline-none focus:ring-2 focus:ring-black transition-all text-sm" />
+                </div>
+              </div>
+
+              <div class="pt-2 flex items-center justify-between">
+                <button type="submit" :disabled="isSavingSecurity" class="border-2 border-black text-black rounded-full px-6 py-2.5 font-bold hover:bg-black hover:text-white transition-all active:scale-95 disabled:opacity-50 text-sm cursor-pointer">
+                  {{ isSavingSecurity ? $t('profile.updating') : $t('profile.update_pass') }}
+                </button>
+                <span v-if="securityMessage.text" class="text-xs font-medium" :class="securityMessage.type === 'error' ? 'text-red-500' : 'text-emerald-500'">
+                  {{ securityMessage.text }}
+                </span>
+              </div>
+            </form>
+          </div>
+        </SaCard>
+
+      </div>
+
+      <!-- 4. PREFERENCES & DANGER ZONE -->
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-8 fade-up" style="animation-delay: 300ms;">
+        
+        <SaCard class="spotlight-card rounded-[2rem] p-8 border border-[var(--sa-gray)] bg-white flex flex-col h-full">
+          <div>
+            <h3 class="font-display text-xl font-semibold text-[var(--sa-dark)] mb-2">{{ $t('profile.preferences') }}</h3>
+            <p class="text-sm text-[var(--sa-taupe)] mb-6">{{ $t('profile.pref_desc') }}</p>
+            
+            <label class="flex items-center justify-between cursor-pointer group py-2">
+              <div>
+                <p class="font-medium text-[var(--sa-dark)] text-sm">{{ $t('profile.badge_notif') }}</p>
+                <p class="text-xs text-[var(--sa-taupe)]">{{ $t('profile.badge_desc') }}</p>
+              </div>
               <div class="relative w-12 h-6 rounded-full transition-colors duration-300" :class="formData.notify_badges ? 'bg-black' : 'bg-[var(--sa-gray)]'">
                 <input type="checkbox" v-model="formData.notify_badges" class="sr-only" @change="saveProfile" />
                 <div class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform duration-300 shadow-sm" :class="formData.notify_badges ? 'translate-x-6' : 'translate-x-0'"></div>
               </div>
             </label>
+
+            <!-- DARK MODE APPEARANCE TOGGLE -->
+            <div class="mt-6 pt-6 border-t border-[var(--sa-gray)]">
+              <p class="font-medium text-[var(--sa-dark)] text-sm mb-4">{{ $t('profile.appearance') || 'Appearance' }}</p>
+              <div class="flex bg-gray-50 rounded-xl p-1 border border-[var(--sa-gray)]">
+                <button 
+                  @click="setTheme('light')"
+                  type="button"
+                  class="flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                  :class="!isDarkMode ? 'bg-white text-black shadow-sm' : 'text-[var(--sa-taupe)] hover:text-[var(--sa-dark)]'"
+                >
+                  ☀️ {{ $t('profile.light_mode') || 'Light' }}
+                </button>
+                <button 
+                  @click="setTheme('dark')"
+                  type="button"
+                  class="flex-1 py-2 text-sm font-bold rounded-lg transition-all flex items-center justify-center gap-2"
+                  :class="isDarkMode ? 'bg-black text-white shadow-sm' : 'text-[var(--sa-taupe)] hover:text-[var(--sa-dark)]'"
+                >
+                  🌙 {{ $t('profile.dark_mode') || 'Dark' }}
+                </button>
+              </div>
+            </div>
+
           </div>
         </SaCard>
 
-        <!-- Account Actions (Restored red button layout) -->
-        <SaCard class="spotlight-card rounded-[2rem] p-8 border border-[var(--sa-gray)] bg-white h-full">
-          <div class="relative z-10 flex flex-col h-full justify-between">
-            <div>
-              <h3 class="font-display text-xl font-semibold text-[var(--sa-dark)] mb-2">Account Actions</h3>
-              <p class="text-sm text-[var(--sa-taupe)] mb-6">Manage your session or permanently delete your data.</p>
-            </div>
-            
-            <div class="space-y-4">
-              <button @click="handleLogout" class="w-full border-2 border-[var(--sa-gray)] text-[var(--sa-dark)] rounded-xl px-4 py-3 font-semibold hover:border-black hover:bg-gray-50 transition-all">
-                Sign Out
-              </button>
-              <button @click="handleDeleteAccount" class="w-full bg-red-50 text-red-600 rounded-xl px-4 py-3 font-semibold hover:bg-red-100 transition-all">
-                Delete Account
-              </button>
-            </div>
+        <SaCard class="spotlight-card rounded-[2rem] p-8 border border-[var(--sa-gray)] bg-white flex flex-col justify-between h-full">
+          <div>
+            <h3 class="font-display text-xl font-semibold text-[var(--sa-dark)] mb-2">{{ $t('profile.actions') }}</h3>
+            <p class="text-sm text-[var(--sa-taupe)] mb-6">{{ $t('profile.actions_desc') }}</p>
+          </div>
+          
+          <div class="space-y-3 pt-2">
+            <button @click="handleLogout" class="w-full border-2 border-[var(--sa-gray)] text-[var(--sa-dark)] rounded-xl px-4 py-3 font-semibold hover:border-black hover:bg-gray-50 transition-all text-sm cursor-pointer">
+              {{ $t('profile.signout') }}
+            </button>
+            <button @click="handleDeleteAccount" class="w-full bg-red-50 text-red-600 rounded-xl px-4 py-3 font-semibold hover:bg-red-100 transition-all text-sm cursor-pointer">
+              {{ $t('profile.delete_acc') }}
+            </button>
           </div>
         </SaCard>
 
       </div>
+
     </div>
   </AppShell>
 </template>
