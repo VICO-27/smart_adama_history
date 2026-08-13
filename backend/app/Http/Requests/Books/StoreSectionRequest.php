@@ -14,9 +14,11 @@ class StoreSectionRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'title'    => ['required', 'string', 'min:1', 'max:255'],
-            'order'    => ['sometimes', 'integer', 'min:0'],
-            'raw_text' => ['nullable', 'string'],
+            'chapter_id'     => ['sometimes', 'nullable', 'uuid', 'exists:chapters,id'],
+            'section_number' => ['required', 'string', 'regex:/^\d+(\.\d+)*$/'],
+            'title'          => ['required', 'string', 'min:1', 'max:255'],
+            'order'          => ['sometimes', 'nullable', 'integer', 'min:0'],
+            'raw_text'       => ['nullable', 'string'],
         ];
     }
 }

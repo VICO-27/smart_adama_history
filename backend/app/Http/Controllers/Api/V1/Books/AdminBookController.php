@@ -24,9 +24,11 @@ class AdminBookController extends Controller
         $filePath = null;
         $fileType = null;
 
-        // Changed from 'manuscript' to 'file' to match frontend, and stored on 'local' disk
-        if ($request->hasFile('file')) {
-            $file     = $request->file('file');
+        // Handle both 'file' and 'manuscript' field names for compatibility
+        $fileField = $request->hasFile('file') ? 'file' : 'manuscript';
+        
+        if ($request->hasFile($fileField)) {
+            $file     = $request->file($fileField);
             $filePath = $file->store('manuscripts', 'local');
             $fileType = $file->getClientOriginalExtension();
         }

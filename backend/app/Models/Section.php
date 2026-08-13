@@ -14,6 +14,7 @@ class Section extends Model
 
     protected $fillable = [
         'chapter_id',
+        'section_number',
         'title',
         'order',
         'raw_text',
