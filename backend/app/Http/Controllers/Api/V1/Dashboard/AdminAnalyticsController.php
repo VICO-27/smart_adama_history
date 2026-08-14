@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Cache;
  */
 class AdminAnalyticsController extends Controller
 {
-    public function show(): JsonResponse
+    public function __invoke(): JsonResponse
     {
         $data = Cache::remember('admin_analytics', 60, function () {
             $totalUsers        = User::whereNull('deleted_at')->count();

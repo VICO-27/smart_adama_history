@@ -55,6 +55,14 @@ declare namespace App {
     messages?: ChatMessage[]
   }
 
+  interface ChatMessageFeedback {
+    id: string
+    chat_message_id: string
+    user_id: string
+    feedback: 'like' | 'dislike'
+    created_at: string
+  }
+
   interface ChatMessage {
     id: string
     chat_session_id: string
@@ -62,14 +70,23 @@ declare namespace App {
     content: string
     created_at: string
     sources?: ChatMessageSource[]
+    feedback?: ChatMessageFeedback | null
   }
 
   interface ChatMessageSource {
+    id?: string
     chunk_id: string
     chapter_title: string
     section_title: string
     excerpt: string
     similarity: number
+    chunk_text?: string
+  }
+
+  interface ChatMessageStreamDone {
+    message_id: string
+    grounded: boolean
+    citations: ChatMessageSource[]
   }
 
   // ── Quiz ──────────────────────────────────────────────────────────────────

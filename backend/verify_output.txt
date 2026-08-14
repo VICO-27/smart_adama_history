@@ -1,0 +1,25 @@
+=== PHASE 1: DATABASE VERIFICATION ===
+
+
+   Illuminate\Database\QueryException 
+
+  SQLSTATE[42703]: Undefined column: 7 ERROR:  column "chapter_number" does not exist
+LINE 1: select * from "chapters" order by "chapter_number" asc
+                                          ^ (Connection: pgsql, Host: 127.0.0.1, Port: 5432, Database: smart_adama, SQL: select * from "chapters" order by "chapter_number" asc)
+
+  at vendor/laravel/framework/src/Illuminate/Database/Connection.php:857
+    853▕             $exceptionType = ($isUniqueConstraintError = $this->isUniqueConstraintError($e))
+    854▕                 ? UniqueConstraintViolationException::class
+    855▕                 : QueryException::class;
+    856▕ 
+  ➜ 857▕             $exception = new $exceptionType(
+    858▕                 $this->getNameWithReadWriteType(),
+    859▕                 $query,
+    860▕                 $this->prepareBindings($bindings),
+    861▕                 $e,
+
+      [2m+9 vendor frames [22m
+
+  10  verify_chapters.php:14
+      Illuminate\Database\Eloquent\Builder::get()
+
