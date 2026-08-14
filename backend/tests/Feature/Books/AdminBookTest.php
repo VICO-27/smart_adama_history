@@ -23,7 +23,7 @@ it('admin can create a book', function () {
 });
 
 it('admin can upload a manuscript with the book', function () {
-    Storage::fake('s3');
+    Storage::fake('local');
     $admin = User::factory()->admin()->create();
     $file  = UploadedFile::fake()->create('manuscript.pdf', 1000, 'application/pdf');
 
@@ -150,8 +150,9 @@ it('admin can create a section in a chapter', function () {
 
     $this->actingAs($admin)
         ->postJson("/api/v1/admin/chapters/{$chapter->id}/sections", [
-            'title'    => 'Section 1.1',
-            'raw_text' => 'This is the section content.',
+            'section_number' => '1.1',
+            'title'          => 'Section 1.1',
+            'raw_text'       => 'This is the section content.',
         ])
         ->assertStatus(201)
         ->assertJsonPath('section.title', 'Section 1.1');
