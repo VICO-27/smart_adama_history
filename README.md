@@ -2,7 +2,7 @@
 
 ## 🔒 Restricted to the Development Team
 
-Please clone and run this project locally to investigate and test it. Afterward, submit a report with: 
+Please clone and run this project locally to investigate and test it. Afterward, bring your laptop and notes to the office for an in-person review to discuss:
 
 * **Analysis:** Your findings and ideas.
 * **Issues:** Any problems you encountered.
