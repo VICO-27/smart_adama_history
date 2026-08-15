@@ -27,9 +27,12 @@ class ChatOrchestrator
      */
     public function handleMessage(ChatSession $session, string $query): array
     {
-        // 1. Retrieve relevant RAG context chunks
-        $retrievalResult = $this->retriever->retrieve($query);
-        $chunks  = $retrievalResult['chunks'];
+        // Extract chapter ID if the session is tied to a specific chapter
+        $chapterId = $session->chapter_id ?? null;
+
+        // 1. Retrieve relevant RAG context chunks, scoped securely to the chapter/book
+        $retrievalResult = $this->retriever->retrieve($query, 5, null, $chapterId);
+        $chunks   = $retrievalResult['chunks'];
         $grounded = $retrievalResult['grounded'];
 
         // 2. Gather conversation history
@@ -86,8 +89,8 @@ class ChatOrchestrator
         });
 
         return [
-            'message' => $assistantMessage,
-            'chunks'  => $chunks,
+            'message'  => $assistantMessage,
+            'chunks'   => $chunks,
             'grounded' => $grounded,
         ];
     }

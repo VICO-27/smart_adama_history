@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Dashboard;
 
 use App\Http\Controllers\Controller;
-use App\Models\Chapter;
+use App\Models\Book;
 use App\Models\QuizAttempt;
 use App\Models\UserProgress;
 use Illuminate\Http\JsonResponse;
@@ -22,8 +22,17 @@ class DashboardController extends Controller
         $cacheKey = "dashboard:{$user->id}";
 
         $data = Cache::remember($cacheKey, 60, function () use ($user) {
-            $totalChapters     = Chapter::count();
-            $progressRecords   = UserProgress::where('user_id', $user->id)->get();
+            // 1. Identify canonical scope
+            $canonicalBook = Book::canonical();
+            $canonicalChapterIds = $canonicalBook ? $canonicalBook->chapters()->pluck('id') : collect();
+            
+            $totalChapters = $canonicalChapterIds->count();
+
+            // 2. Scope progress to only chapters in the canonical book
+            $progressRecords = UserProgress::where('user_id', $user->id)
+                ->whereIn('chapter_id', $canonicalChapterIds)
+                ->get();
+                
             $completedChapters = $progressRecords->where('is_completed', true)->count();
             $completionPct     = $totalChapters > 0
                 ? round(($completedChapters / $totalChapters) * 100, 1)

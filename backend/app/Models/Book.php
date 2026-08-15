@@ -18,6 +18,18 @@ class Book extends Model
         'source_file_type',
     ];
 
+    // ── Scopes & Helpers ─────────────────────────────────────────────────────
+
+    /**
+     * Get the canonical Smart Adama book for learner progress tracking.
+     */
+    public static function canonical(): ?self
+    {
+        return self::where('title', 'Smart Adama: Complete Guide & Ecosystem')
+            ->orWhere('title', 'Smart Adama: A Conceptual Framework')
+            ->first() ?? self::first();
+    }
+
     // ── Relationships ────────────────────────────────────────────────────────
 
     public function chapters(): HasMany

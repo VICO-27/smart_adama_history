@@ -30,6 +30,7 @@ use App\Http\Controllers\Api\V1\Quizzes\QuizAttemptController;
 use App\Http\Controllers\Api\V1\Quizzes\QuizController;
 use App\Http\Controllers\Api\V1\Users\UserController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\V1\Gamification\GameController;
 
 Route::middleware('auth:sanctum')->get('/v1/ai-search', [SearchController::class, 'search']);
 
@@ -55,6 +56,12 @@ Route::middleware('auth:sanctum')->group(function () {
 
     Route::post('/auth/logout', LogoutController::class);
     Route::get('/auth/me', MeController::class);
+
+    // --- Gamification Game Hub Routes ---
+    Route::prefix('game')->group(function () {
+        Route::get('/leaderboard', [GameController::class, 'leaderboard']);
+        Route::get('/daily-challenge', [GameController::class, 'dailyChallenge']);
+    });
 
     Route::prefix('users/me')->group(function () {
         Route::get('/', [UserController::class, 'show']);

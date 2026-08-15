@@ -19,8 +19,17 @@ import AdminQuizView from '@/views/admin/AdminQuizView.vue'
 import AdminBookIngestionView from '@/views/admin/AdminBookIngestionView.vue'
 import AdminChapterEditor from '@/views/admin/AdminChapterEditor.vue'
 import NotFoundView from '@/views/NotFoundView.vue'
+import GameView from '@/views/GameView.vue' // <-- Add this line
+
 
 const routes: RouteRecordRaw[] = [
+
+  {
+    path: '/game', // <-- Add this route block
+    name: 'game',
+    component: GameView,
+    meta: { requiresAuth: true },
+  },
   {
     path: '/',
     name: 'landing',
