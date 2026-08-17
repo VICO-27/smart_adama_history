@@ -13,23 +13,10 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
-/**
- * POST /chat/sessions/{session}/messages
- *
- * Full RAG + SSE streaming pipeline (Req 5.1–5.6, 6.1–6.2, 7.1):
- *  1. Persist user message
- *  2. Retrieve top-k chunks via pgvector
- *  3. Build context-grounded prompt
- *  4. Create empty assistant message in DB
- *  5. Stream tokens directly from LLM to client via SSE (time-to-first-token optimized)
- *  6. Update assistant message with full content after stream completes
- *  7. Persist citations/sources
- *  8. Send done event with message ID + citations
- */
 class ChatMessageController extends Controller
 {
     public function __construct(
-        private readonly RetrievalService    $retrieval,
+        private readonly RetrievalService     $retrieval,
         private readonly PromptBuilderService $promptBuilder,
         private readonly LLMGatewayInterface  $llm,
     ) {
@@ -49,7 +36,7 @@ class ChatMessageController extends Controller
             'content' => $userContent,
         ]);
 
-        // Auto-title session from first message (Req 7.1)
+        // Auto-title session from first message
         if ($session->title === 'New Chat') {
             $session->update([
                 'title'            => mb_substr($userContent, 0, 60),
@@ -59,9 +46,10 @@ class ChatMessageController extends Controller
             $session->update(['last_activity_at' => now()]);
         }
 
-        // 2. Retrieve relevant chunks
+        // 2. Retrieve relevant chunks scoped strictly to the current chapter
         $topK      = (int) config('ai.rag.top_k', 5);
-        $retrieval = $this->retrieval->retrieve($userContent, $topK);
+        $chapterId = $session->chapter_id ?? null;
+        $retrieval = $this->retrieval->retrieve($userContent, $topK, null, $chapterId);
         $chunks    = $retrieval['chunks'];
         $grounded  = $retrieval['grounded'];
 
@@ -81,8 +69,6 @@ class ChatMessageController extends Controller
             $grounded
         );
 
-        // 5. Stream tokens directly to SSE as they arrive from the LLM.
-        //    This enables time-to-first-token optimization.
         $assistantMessage = null;
         $citations        = [];
         $streamError      = null;
@@ -100,11 +86,9 @@ class ChatMessageController extends Controller
         return new StreamedResponse(function () use (
             $messages, $chunks, $session, $assistantMessage, &$responseContent, &$citations, &$streamError
         ) {
-            try {
-                if (ob_get_level() > 0) {
-                    ob_end_clean();
-                }
-            } catch (\Throwable) {
+            // Nuke ALL levels of PHP output buffering to force immediate delivery
+            while (ob_get_level() > 0) {
+                ob_end_clean();
             }
 
             try {
@@ -114,6 +98,9 @@ class ChatMessageController extends Controller
                     // Stream token immediately to client
                     echo 'event: delta' . "\n";
                     echo 'data: ' . json_encode(['token' => $token]) . "\n\n";
+                    
+                    // Force the web server to push the packet instantly
+                    @ob_flush();
                     flush();
                 }
             } catch (\Throwable $e) {
@@ -130,35 +117,30 @@ class ChatMessageController extends Controller
                         'message' => 'The AI service is temporarily unavailable.',
                     ],
                 ]) . "\n\n";
+                @ob_flush();
                 flush();
                 return;
             }
 
+            $finalHtml = '';
+
             // Update assistant message content and persist sources after stream completes
-            DB::transaction(function () use ($session, $responseContent, $chunks, $assistantMessage, &$citations) {
-                // Convert markdown to HTML before saving
+            DB::transaction(function () use ($session, $responseContent, $chunks, $assistantMessage, &$citations, &$finalHtml) {
                 try {
                     $markdownService = app(\App\Services\MarkdownService::class);
                     $htmlContent = $markdownService->toHtml($responseContent);
                     
-                    // Fallback to raw content if HTML conversion fails or returns empty
                     if (empty(trim($htmlContent))) {
-                        Log::warning('ChatMessageController: Markdown conversion returned empty', [
-                            'markdown_length' => strlen($responseContent),
-                            'session_id' => $session->id,
-                        ]);
-                        $htmlContent = nl2br(e($responseContent)); // Fallback: escape and preserve newlines
+                        $htmlContent = nl2br(e($responseContent)); 
                     }
                 } catch (\Throwable $e) {
-                    Log::error('ChatMessageController: Markdown conversion failed', [
-                        'error' => $e->getMessage(),
-                        'session_id' => $session->id,
-                    ]);
-                    $htmlContent = nl2br(e($responseContent)); // Fallback: escape and preserve newlines
+                    $htmlContent = nl2br(e($responseContent)); 
                 }
                 
+                $finalHtml = $htmlContent;
+
                 $assistantMessage->update([
-                    'content' => $htmlContent,
+                    'content' => $finalHtml,
                 ]);
 
                 foreach ($chunks as $chunk) {
@@ -178,18 +160,20 @@ class ChatMessageController extends Controller
                 ], $chunks);
             });
 
-            // Done event with message ID and citations
+            // Done event with message ID, citations, AND the final compiled HTML
             echo 'event: done' . "\n";
             echo 'data: ' . json_encode([
-                'message_id' => $assistantMessage?->id,
-                'grounded'   => ! empty($citations),
-                'citations'  => $citations,
+                'message_id'   => $assistantMessage?->id,
+                'grounded'     => ! empty($citations),
+                'citations'    => $citations,
+                'html_content' => $finalHtml,
             ]) . "\n\n";
+            @ob_flush();
             flush();
 
         }, 200, [
             'Content-Type'      => 'text/event-stream',
-            'Cache-Control'     => 'no-cache',
+            'Cache-Control'     => 'no-cache, no-transform', // Bypass proxy buffering
             'X-Accel-Buffering' => 'no',
             'Connection'        => 'keep-alive',
         ]);
